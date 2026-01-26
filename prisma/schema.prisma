@@ -12,3 +12,38 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id      String  @id @default(uuid()) 
+  name    String
+  spaces  Space[] 
+}
+
+
+model Space {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) 
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  contents  Content[] 
+}
+
+
+model Content {
+  id        String   @id @default(uuid())
+  type      String   
+  data      String   
+  size      Int     
+  createdAt DateTime @default(now())
+  spaceId   String
+  space     Space    @relation(fields: [spaceId], references: [id])
+}
+
+
+
+
+
+
+
+
+

@@ -52,12 +52,12 @@ export default function Footer() {
             <Link href="/signup">
               <span
                 className="
-                  inline-block px-8 py-3 rounded-full font-medium text-[#162B1E]
+                  inline-block px-8 py-3 rounded-full font-medium 
                   bg-[linear-gradient(90deg,_#CFCAC0_0%,_#576238_100%)]
                   hover:opacity-90 transition
                 "
               >
-                Create account
+                Get Started
               </span>
             </Link>
           </div>

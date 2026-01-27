@@ -108,7 +108,7 @@ export default function LandingSections() {
           <span className="inline-block px-10 py-4 rounded-full text-white font-medium
             bg-[linear-gradient(90deg,_#576238_0%,_#CFCAC0_100%)]
             hover:opacity-90 transition">
-            Start Exploring
+            Get Started
           </span>
         </Link>
       </section>

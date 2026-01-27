@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "ShareSpace-blog",
   description: "ShareSpace App",
   icons: {

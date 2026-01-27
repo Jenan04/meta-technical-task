@@ -7,7 +7,7 @@ import Footer from './component/footer';
 function page() {
   return (
    <div className="min-h-screen font-sans">
-      <Header />
+      <Header hideUserLinks/>
       <HeroSection />
       <HowItWorks />
       <Footer />

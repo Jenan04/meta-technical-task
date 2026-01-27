@@ -5,18 +5,23 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
+enum Type {
+  PRIVATE
+  PUBLIC
+}
+
 model User {
-  id      String  @id @default(uuid()) 
-  name    String
-  spaces  Space[] 
+  id          String   @id @default(uuid()) 
+  name        String
+  isComplete  Boolean  @default(false)
+  spaces      Space[] 
 }
 
 
@@ -25,6 +30,7 @@ model Space {
   createdAt DateTime  @default(now()) 
   userId    String
   user      User      @relation(fields: [userId], references: [id])
+  type      Type      @default(PUBLIC)
   contents  Content[] 
 }
 
@@ -37,13 +43,5 @@ model Content {
   createdAt DateTime @default(now())
   spaceId   String
   space     Space    @relation(fields: [spaceId], references: [id])
+  visibility Type   @default(PUBLIC)
 }
-
-
-
-
-
-
-
-
-

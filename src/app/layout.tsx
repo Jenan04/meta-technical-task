@@ -6,7 +6,7 @@ export const metadata = {
   title: "ShareSpace-blog",
   description: "ShareSpace App",
   icons: {
-    icon: '/favicon.webp',
+    icon: '/favicon.webp?v=1',
   },
 };
 

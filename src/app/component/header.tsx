@@ -1,13 +1,25 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X} from 'lucide-react';
+import { Menu, X, Home, User } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  hideUserLinks?: boolean; 
+}
+
+const Header: React.FC<HeaderProps> = ({ hideUserLinks }) => {
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [hasUser, setHasUser] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const pathname = usePathname();
 
+  useEffect(() => {
+    const userId = localStorage.getItem('userId');
+    setHasUser(!!userId);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -19,6 +31,111 @@ const Header: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleGetStarted = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `
+            mutation CreateUser($name: String!) {
+              createPseudoUser(name: $name) {
+                id
+                name
+              }
+            }
+          `,
+          variables: {
+            name: `User_${Math.floor(Math.random() * 1000)}`,
+          },
+        }),
+      });
+
+      const result = await response.json();
+      const userData = result.data.createPseudoUser;
+
+      if (userData?.id) {
+        localStorage.setItem('userId', userData.id);
+        setHasUser(true); 
+        router.push('/feed');
+      }
+    } catch (error) {
+      console.error("Error creating user:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const renderLinks = () => {
+    if (!hasUser || hideUserLinks) {
+      return (
+        <button
+          onClick={handleGetStarted}
+          disabled={loading}
+          className="relative inline-block rounded-[24px] overflow-hidden group disabled:opacity-70 transition-all active:scale-95"
+        >
+          <span className="block px-6 py-2 bg-[linear-gradient(90deg,_rgba(87,98,56,1)_0%,_rgba(176,170,160,1)_100%)] text-white font-medium">
+            {loading ? 'Creating...' : 'Get Started'}
+          </span>
+          <span className="absolute inset-0 bg-[#576238] opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-medium">
+            {loading ? 'Wait...' : 'Get Started'}
+          </span>
+        </button>
+      );
+    }
+
+    const navItemClasses = (isActive: boolean) => `
+      flex flex-col items-center justify-center min-w-[64px] py-1 px-2 rounded-xl transition-all duration-300
+      ${isActive 
+        ? 'text-[#576238] bg-[#576238]/5' // لون أخضر خفيف للخلفية عند التفعيل
+        : 'text-[#162B1E]/60 hover:text-[#162B1E] hover:bg-[#D6B2B2]/10'
+      }
+    `;
+
+    return (
+      <div className="flex items-center gap-6">
+        <button
+          onClick={() => router.push('/feed')}
+          className={navItemClasses(pathname === '/feed')}
+        >
+          <Home 
+            size={22} 
+            strokeWidth={pathname === '/feed' ? 2.5 : 2} 
+            className="transition-transform duration-300 group-hover:scale-110"
+          />
+          <span className={`text-[10px]  tracking-wider font-bold mt-1 ${
+            pathname === '/feed' ? 'opacity-100' : 'opacity-80'
+          }`}>
+            Feed
+          </span>
+          {pathname === '/feed' && (
+            <div className="w-5 h-0.5 bg-[#576238] rounded-full mt-0.5" />
+          )}
+        </button>
+
+        <button
+          onClick={() => router.push('/profile')}
+          className={navItemClasses(pathname === '/profile')}
+        >
+          <User 
+            size={22} 
+            strokeWidth={pathname === '/profile' ? 2.5 : 2} 
+          />
+          <span className={`text-[10px]  tracking-wider font-bold mt-1 ${
+            pathname === '/profile' ? 'opacity-100' : 'opacity-80'
+          }`}>
+            Profile
+          </span>
+
+          {pathname === '/profile' && (
+            <div className="w-5 h-0.5 bg-[#576238] rounded-full mt-0.5" />
+          )}
+        </button>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -40,25 +157,14 @@ const Header: React.FC = () => {
               height={50}
               className="object-contain"
             />
-
             <span className="text-2xl text-[#162B1E] font-semibold italic tracking-tighter font-serif antialiased">
              Share Space
            </span>
           </div>
 
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="">
-              <div className="relative inline-block rounded-[24px] overflow-hidden group">
-                <span className="block px-6 py-2 bg-[linear-gradient(90deg,_rgba(87,98,56,1)_0%,_rgba(176,170,160,1)_100%)] text-white font-medium">
-                  Get Started
-                </span>
-                <span className="absolute inset-0 bg-[#576238] opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-medium">
-                  Get Started
-                </span>
-              </div>
-            </Link>
+            {renderLinks()}
           </nav>
-
 
           <div className="md:hidden">
             <button
@@ -68,21 +174,13 @@ const Header: React.FC = () => {
               {open ? <X size={28} /> : <Menu size={28} />}
             </button>
 
-
             {open && (
               <div 
                 ref={dropdownRef}
                 className="absolute top-full left-0 w-full bg-[#FCF7F7] shadow-2xl border-t border-gray-100 flex flex-col p-4 space-y-1 z-50 animate-in slide-in-from-top-2 duration-300"
               >
-
-                <div className="pt-4 mt-2  border-gray-100 flex flex-col gap-3">
-                   <Link 
-                     href="/signup" 
-                     onClick={() => setOpen(false)}
-                     className="w-full text-center py-3 bg-[#162B1E] text-white rounded-xl font-medium shadow-md active:scale-95 transition"
-                   >
-                     Get Started
-                   </Link>
+                <div className="pt-4 mt-2 border-gray-100 flex flex-col gap-3">
+                  {renderLinks()}
                 </div>
               </div>
             )}

@@ -65,8 +65,14 @@ export const resolvers = {
     },
 
     deleteSpace: async (_: unknown, { id }: { id: string }) => {
-       await SpaceService.deleteSpace(id);
-       return true;
+      //  await SpaceService.deleteSpace(id);
+      //  return true;
+      try {
+        await SpaceService.deleteSpace(id);
+        return true; // تأكد أن السيرفس لم ترمِ خطأً
+    } catch (error) {
+        throw new GraphQLError("Could not delete space");
+    }
     },
 
     deleteContent: async (_: unknown, { id }: { id: string }) => {

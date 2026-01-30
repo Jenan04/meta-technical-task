@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { FileText, ArrowLeft, X, Settings2, Trash2, Plus, Globe, Lock, Loader2, Check, AlertTriangle } from 'lucide-react';
 import Header from '../component/header';
 import Link from 'next/link';
-import { ContentItem, SpaceData } from '@/types';
+import { ContentItem, SpaceData } from '../../types';
+import DeleteSpaceModal from '../component/deleteSpaceMpdal';
 
 export default function SpaceViewPage() {
   const params = useParams<{ slug: string }>();
@@ -276,40 +277,13 @@ export default function SpaceViewPage() {
         </div>
       </main>
 
-      {isDeletingSpace && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
-          <div 
-            className="absolute inset-0 bg-[#162B1E]/40 backdrop-blur-md animate-in fade-in duration-300" 
-            onClick={() => !isDeleting && setIsDeletingSpace(false)} 
-          />
-          <div className="relative bg-white w-full max-w-md rounded-[40px] p-10 shadow-2xl text-center animate-in zoom-in-95 duration-300">
-            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <AlertTriangle size={32} />
-            </div>
-            <h3 className="text-2xl font-serif italic text-[#162B1E] mb-2">Delete Space?</h3>
-            <p className="text-[#162B1E]/60 text-sm mb-8 leading-relaxed">
-              Are you sure you want to delete <span className="font-bold">&quot;{space.name}&quot;</span>? 
-              This will permanently remove the space and all its contents.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button 
-                disabled={isDeleting}
-                onClick={handleDeleteSpace}
-                className="w-full py-4 bg-red-600 text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-100 flex items-center justify-center gap-2"
-              >
-                {isDeleting ? <Loader2 size={14} className="animate-spin" /> : "Yes, Delete Everything"}
-              </button>
-              <button 
-                disabled={isDeleting}
-                onClick={() => setIsDeletingSpace(false)}
-                className="w-full py-4 bg-transparent text-[#162B1E]/40 rounded-full text-[10px] font-bold uppercase tracking-widest hover:text-[#162B1E] transition-all"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteSpaceModal 
+        isOpen={isDeletingSpace} 
+        spaceId={space.id} 
+        spaceName={space.name} 
+        onClose={() => setIsDeletingSpace(false)} 
+        redirectAfterDelete="/profile"
+      />
 
       {selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">

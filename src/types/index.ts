@@ -59,6 +59,8 @@ export interface Space {
 export interface UserData {
   name: string;
   isComplete: boolean;
+  slug: string;          
+  privateToken: string;
 }
 
 export interface profileGraphQLResponse {
@@ -79,6 +81,18 @@ export interface CreateSpaceResponse {
 export interface AddContentResponse {
   data?: {
     addContent: ContentItem;
+  };
+  errors?: Array<{ message: string }>;
+}
+
+export interface PublicProfileData {
+  name: string;
+  spaces: (Space & { contents: { id: string }[] })[];
+}
+
+export interface PublicProfileResponse {
+  data?: {
+    getPublicProfile?: PublicProfileData;
   };
   errors?: Array<{ message: string }>;
 }

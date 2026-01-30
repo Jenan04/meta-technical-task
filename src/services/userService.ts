@@ -1,9 +1,17 @@
 import { prisma } from "@/lib/prisma";
+import { v4 as uuidv4 } from "uuid";
 
 export const UserService = {
   async createPseudoUser(name: string) {
-    const user = await prisma.user.create({ data: { name } });
-    return user;
+    const tempSlug = `${name.toLowerCase().replace(/\s+/g, '-')}-${Math.random().toString(36).substring(2, 6)}`;
+    return await prisma.user.create({
+      data: {
+        name,
+        slug: tempSlug,
+        privateToken: uuidv4(),
+        isComplete: false, 
+      }
+    });
   },
 
   async updateUser(id: string, name: string) {
@@ -23,9 +31,17 @@ export const UserService = {
       throw new Error("Name can only contain letters, numbers, and underscores.");
     }
 
+    const finalSlug = cleanName.toLowerCase();
+    const existing = await prisma.user.findUnique({ where: { slug: finalSlug } });
+    if (existing && existing.id !== id) throw new Error("This name is already taken.");
+
     return prisma.user.update({
       where: { id },
-      data: { name: cleanName, isComplete: true },
+      data: { 
+        name: cleanName, 
+        slug: finalSlug,
+        isComplete: true 
+      },
     });
   },
 
@@ -35,4 +51,26 @@ export const UserService = {
       include: { spaces: true },
     });
   },
+  async getPublicProfile(slug: string) {
+    return prisma.user.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        spaces: {
+          where: { type: 'PUBLIC' },
+          include: { contents: true }
+        }
+      }
+    });
+  },
+  
+  async getUserBySlug (slug: string){
+   return await prisma.user.findUnique({
+      where: { slug },
+      include: { spaces: true }
+    });
+
+  }
 };

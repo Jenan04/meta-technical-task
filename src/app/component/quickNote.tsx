@@ -3,11 +3,12 @@
 import { X, Loader2, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { ContentItem } from "@/types"
 
 interface QuickNoteModalProps {
   spaceId: string | null;
   onClose: () => void;
-  onNoteAdded: (id: string) => void; 
+  onNoteAdded: (content: ContentItem) => void; 
 }
 
 export default function QuickNoteModal({ spaceId, onClose, onNoteAdded }: QuickNoteModalProps) {

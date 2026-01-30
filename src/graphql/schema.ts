@@ -13,6 +13,8 @@ export const typeDefs =`
   type User {
     id: ID!
     name: String!
+    slug: String!        
+    privateToken: String!
     isComplete: Boolean!
     spaces: [Space!]!
   }
@@ -38,6 +40,8 @@ export const typeDefs =`
 
   type Query {
     getUser(id: ID!): User
+    getPublicProfile(slug: String!): User 
+    getPrivateProfileByToken(slug: String!, token: String!): User
     getSpaceContents(spaceId: ID!): [Content!]!
     getUserSpaces(userId: ID!): [Space!]!
     getSpaceBySlug(slug: String!): Space

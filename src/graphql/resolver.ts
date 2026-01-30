@@ -18,6 +18,33 @@ export const resolvers = {
       }
     },
 
+    getPublicProfile: async (_: unknown, { slug }: { slug: string }) => {
+      try {
+        const user = await UserService.getPublicProfile(slug);
+        if (!user) throw new GraphQLError("Profile not found");
+        return user;
+      } catch (error: unknown) {
+        throw new GraphQLError("Could not fetch public profile");
+      }
+    },
+
+    getPrivateProfileByToken: async (_: unknown, { slug, token }: { slug: string, token: string }) => {
+      try {
+        const user = await UserService.getUserBySlug(slug)
+
+        if (!user || user.privateToken !== token) {
+          throw new GraphQLError("Unauthorized: Invalid secret link");
+        }
+
+        return user;
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          throw new GraphQLError(error.message);
+        }
+         throw new GraphQLError("An unexpected error occurred");
+      }
+    },
+
     getUserSpaces: async (_: unknown, { userId }: { userId: string }) => {
       try {
         return await SpaceService.getUserSpaces(userId);
@@ -65,11 +92,9 @@ export const resolvers = {
     },
 
     deleteSpace: async (_: unknown, { id }: { id: string }) => {
-      //  await SpaceService.deleteSpace(id);
-      //  return true;
       try {
         await SpaceService.deleteSpace(id);
-        return true; // تأكد أن السيرفس لم ترمِ خطأً
+        return true; 
     } catch (error) {
         throw new GraphQLError("Could not delete space");
     }

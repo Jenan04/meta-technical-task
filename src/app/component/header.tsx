@@ -18,7 +18,8 @@ const Header: React.FC<HeaderProps> = ({ hideUserLinks }) => {
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
-    setHasUser(!!userId);
+    const token = localStorage.getItem('token');
+    setHasUser(!!userId && !!token);
   }, []);
 
   useEffect(() => {
@@ -43,6 +44,7 @@ const Header: React.FC<HeaderProps> = ({ hideUserLinks }) => {
               createPseudoUser(name: $name) {
                 id
                 name
+                privateToken
               }
             }
           `,
@@ -57,6 +59,8 @@ const Header: React.FC<HeaderProps> = ({ hideUserLinks }) => {
 
       if (userData?.id) {
         localStorage.setItem('userId', userData.id);
+        localStorage.setItem('token', userData.privateToken); // التوكن الضروري للـ Auth
+        localStorage.setItem('userName', userData.name);
         setHasUser(true); 
         router.push('/feed');
       }

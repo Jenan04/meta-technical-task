@@ -71,7 +71,7 @@ export default function CreateSpacePage() {
 
       const resourceType = item.type === 'IMAGE' ? 'image' : 'raw';
       const cloudRes = await fetch(
-        `https://api.cloudinary.com/v1_1/dkrxdaiwj/${resourceType}/upload`, 
+        `${process.env.NEXT_PUBLIC_CLOUDINARY_URL}${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, 
         { method: 'POST', body: formData }
       );
       cloudData = await cloudRes.json();

@@ -6,11 +6,7 @@ module.exports = {
     "./pages/**/*.{js,ts,jsx,tsx}"
   ],
   theme: {
-    extend: {
-      fontFamily: {
-      sugo: ['"Sugo Pro Display"', 'sans-serif'],
-    },
-    },
+    extend: {},
   },
   plugins: [],
 }

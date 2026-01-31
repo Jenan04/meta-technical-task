@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ToastProvider } from './context/toastContext';
+import { Toaster } from 'react-hot-toast';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "ShareSpace-blog",
   description: "ShareSpace App",
   icons: {
-    icon: '/favicon.webp?v=1',
+    icon: '/favicon.webp',
   },
 };
 
@@ -18,11 +18,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>  
-        <ToastProvider>
-          {children}
-        </ToastProvider>
-        
-        {/* <Toaster
+        {children}
+        <Toaster
           position="top-center"
           toastOptions={{
             duration: 5000,
@@ -31,7 +28,7 @@ export default function RootLayout({
               borderRadius: '50px',
             },
           }}
-        /> */}
+        />
       </body>
     </html>
   );

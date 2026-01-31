@@ -1,17 +1,15 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
 import { Plus, Image as ImageIcon, FileText, Lock, Globe, Loader2, CheckCircle, X, Folder, Trash2, Edit3 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useRouter, useParams } from 'next/navigation';
-import { ContentItem, TempContentItem, CreateSpaceResponse, AddContentResponse, SpaceData } from "@/types";
+import { ContentItem, TempContentItem } from "@/types";
 import Header from '../component/header';
 import QuickNoteModal from '../component/quickNote';
-import DeleteContentModal from '../component/deleteContentModal'; // تأكدي من مسار المكون
-
+import DeleteContentModal from '../component/deleteContentModal';
+import { CloudinaryResponse } from "@/types"
 export default function CreateSpacePage() {
-  const params = useParams<{ slug: string }>();
   const router = useRouter();
   
   const [name, setName] = useState('');
@@ -33,12 +31,155 @@ export default function CreateSpacePage() {
 
   const checkSpaceCreated = () => {
     if (!spaceId) {
-      toast.error("Create the Space first! Click 'CREATE EVERYTHING' to start.", {
+      toast.error("Create the Space first!", {
         style: { borderRadius: '20px', background: '#162B1E', color: '#EBE5DD', fontSize: '11px' },
       });
       return false;
     }
     return true;
+  };
+
+  const uploadAndSaveContent = async (item: TempContentItem, currentSpaceId: string) => {
+    const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('token');
+    if (!item.file) return;
+
+    let uploadId = "";
+    let cloudData: CloudinaryResponse | null = null;
+
+    try {
+      const startRes = await fetch('/api/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          query: `
+            mutation StartUpload($userId: ID!, $spaceId: ID!, $type: ContentType!) {
+              startUpload(userId: $userId, spaceId: $spaceId, type: $type) { id }
+            }
+          `,
+          variables: { userId, spaceId: currentSpaceId, type: item.type },
+        }),
+      });
+      const startJson = await startRes.json();
+      uploadId = startJson.data?.startUpload?.id;
+      if (!uploadId) throw new Error("Server initialization failed");
+
+      const formData = new FormData();
+      formData.append('file', item.file);
+      formData.append('upload_preset', 'udccb7jg');
+      formData.append('public_id', `upload_${uploadId}`);
+
+      const resourceType = item.type === 'IMAGE' ? 'image' : 'raw';
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/dkrxdaiwj/${resourceType}/upload`, 
+        { method: 'POST', body: formData }
+      );
+      cloudData = await cloudRes.json();
+      if (!cloudRes.ok) throw new Error("Cloudinary upload failed");
+
+      const finishRes = await fetch('/api/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          query: `
+            mutation FinishUpload($uploadId: ID!, $url: String!, $size: Int!, $visibility: Type!) {
+              finishUpload(uploadId: $uploadId, url: $url, size: $size, visibility: $visibility) { 
+                id type url text createdAt 
+              }
+            }
+          `,
+          variables: { 
+            uploadId, 
+            url: cloudData?.secure_url || "", 
+            size: cloudData?.bytes || 0, 
+            visibility: visibility 
+          },
+        }),
+      });
+
+      const finishJson = await finishRes.json();
+      if (finishJson.errors) throw new Error("Database confirmation failed");
+
+      return finishJson.data.finishUpload;
+
+    } catch (error: unknown) {
+
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      if (cloudData?.public_id) {
+        await fetch('/api/upload/cleanup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            publicId: cloudData.public_id, 
+            resourceType: item.type === 'IMAGE' ? 'image' : 'raw' 
+          })
+        });
+      }
+      throw new Error(errorMessage);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'IMAGE' | 'FILE') => {
+    const files = e.target.files;
+    if (!files || !spaceId) return;
+
+    const fileList = Array.from(files);
+    for (const f of fileList) {
+      const tempItem = { 
+        file: f, 
+        type, 
+        preview: type === 'IMAGE' ? URL.createObjectURL(f) : '' 
+      };
+      
+      setTempContents(prev => [...prev, tempItem]);
+
+      try {
+        const res = await uploadAndSaveContent(tempItem, spaceId);
+        if (res) {
+          setContents(prev => [...prev, res]);
+          setTempContents(prev => prev.filter(t => t.file !== f));
+        }
+      } catch (err) {
+        toast.error(`Failed to upload: ${f.name}`);
+        setTempContents(prev => prev.filter(t => t.file !== f));
+      }
+    }
+    e.target.value = '';
+  };
+
+  const handleCreateEverything = async () => {
+    if (name.trim().length < 2) return toast.error("Please enter a valid name");
+    setLoading(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('token');
+
+      const spaceRes = await fetch(`/api/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          query: `mutation CreateSpace($userId: ID!, $name: String!, $type: Type!) { createSpace(userId: $userId, name: $name, type: $type) { id } }`,
+          variables: { userId, name, type: visibility },
+        }),
+      });
+      const spaceJson = await spaceRes.json();
+      const newSpaceId = spaceJson.data?.createSpace?.id;
+
+      if (newSpaceId) {
+        setSpaceId(newSpaceId);
+        for (const item of tempContents) {
+          try {
+            const res = await uploadAndSaveContent(item, newSpaceId);
+            if (res) setContents(prev => [...prev, res]);
+          } catch (err) {
+            console.error("Delayed upload failed");
+          }
+        }
+        setTempContents([]);
+        toast.success("Space Created!");
+      }
+    } catch (err) { toast.error("Creation failed"); }
+    finally { setLoading(false); }
   };
 
   const handleDeleteTrigger = (id: string, isTemp: boolean, index?: number) => {
@@ -53,7 +194,6 @@ export default function CreateSpacePage() {
   const confirmDeleteContent = async () => {
     if (!contentToDelete || contentToDelete.isTemp) return;
     setIsDeletingLoading(true);
-
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('/api/graphql', {
@@ -64,94 +204,23 @@ export default function CreateSpacePage() {
           variables: { id: contentToDelete.id }
         })
       });
-      
-      const result = await response.json();
-      if (response.ok && !result.errors) {
-        // setContents(prev => prev.filter(c => c.id !== contentToDelete.id));
-        setContents(prev => [...prev.filter(c => String(c.id) !== String(contentToDelete.id))]);
+      if (response.ok) {
+        setContents(prev => prev.filter(c => String(c.id) !== String(contentToDelete.id)));
         toast.success("Item removed");
       }
-    } catch (err) {
-      toast.error("Failed to delete item");
-    } finally {
+    } catch (err) { toast.error("Failed to delete"); }
+    finally {
       setIsDeletingLoading(false);
       setIsDeletingContent(false);
       setContentToDelete(null);
     }
   };
 
-  const uploadAndSaveContent = async (item: TempContentItem, currentSpaceId: string) => {
-    const userId = localStorage.getItem('userId');
-    const token = localStorage.getItem('token');
-    let url = item.url || '';
-    let size = 0;
-
-    if (item.file) {
-      const formData = new FormData();
-      formData.append('file', item.file);
-      formData.append('userId', userId!);
-      formData.append('spaceId', currentSpaceId);
-
-      const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/upload`, { method: 'POST', body: formData });
-      const uploadData = await uploadRes.json();
-      url = uploadData.url;
-      size = uploadData.size;
-    }
-
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/graphql`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        query: `
-          mutation AddContent($userId: ID!, $spaceId: ID!, $type: ContentType!, $url: String, $text: String, $size: Int, $visibility: Type!) {
-            addContent(userId: $userId, spaceId: $spaceId, type: $type, url: $url, text: $text, size: $size, visibility: $visibility) { id type url text createdAt }
-          }
-        `,
-        variables: { userId, spaceId: currentSpaceId, type: item.type, url, text: item.text, size, visibility },
-      }),
-    });
-    const json = await res.json();
-    return json.data?.addContent;
-  };
-
-  const handleCreateEverything = async () => {
-    if (name.trim().length < 2) return toast.error("Please enter a valid name");
-    setLoading(true);
-    try {
-      const userId = localStorage.getItem('userId');
-      const token = localStorage.getItem('token');
-
-      const spaceRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/graphql`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          query: `mutation CreateSpace($userId: ID!, $name: String!, $type: Type!) { createSpace(userId: $userId, name: $name, type: $type) { id } }`,
-          variables: { userId, name, type: visibility },
-        }),
-      });
-      const spaceJson = await spaceRes.json();
-      const newSpaceId = spaceJson.data?.createSpace?.id;
-
-      if (newSpaceId) {
-        const uploadedContents: ContentItem[] = [];
-        for (const item of tempContents) {
-          const newContent = await uploadAndSaveContent(item, newSpaceId);
-          if (newContent) uploadedContents.push(newContent);
-        }
-        setContents(uploadedContents);
-        setSpaceId(newSpaceId);
-        setTempContents([]);
-        toast.success("Space Created Successfully!");
-      }
-    } catch (err) { toast.error("Creation failed"); }
-    finally { setLoading(false); }
-  };
-
   const handleUpdateSpaceName = async () => {
     if (name.trim().length < 2) return toast.error("Name too short");
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/graphql`, {
+      await fetch(`/api/graphql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -223,14 +292,28 @@ export default function CreateSpacePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-in fade-in duration-500">
             {tempContents.map((item, idx) => (
               <div key={`temp-${idx}`} className="aspect-square bg-white border-2 border-dashed border-[#576238]/20 rounded-[35px] p-2 relative group overflow-hidden">
-                {item.type === 'IMAGE' ? <img src={item.preview} className="w-full h-full object-cover rounded-[28px]" /> : <FileText className="m-auto opacity-20" size={40}/>}
-                <button onClick={() => handleDeleteTrigger('', true, idx)} className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition shadow-lg"><X size={14}/></button>
-                <div className="absolute bottom-3 left-3 bg-[#576238] text-white text-[8px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter">Pending</div>
+                {item.type === 'IMAGE' ? (
+                   <img src={item.preview} className="w-full h-full object-cover rounded-[28px] opacity-50" />
+                ) : (
+                   <div className="flex flex-col items-center justify-center h-full opacity-20"><FileText size={40}/><span className="text-[8px] font-bold mt-1">UPLOADING...</span></div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center">
+                   <Loader2 size={24} className="animate-spin text-[#576238]" />
+                </div>
+                <button onClick={() => handleDeleteTrigger('', true, idx)} className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full transition shadow-lg z-10"><X size={14}/></button>
               </div>
             ))}
+            
             {contents.map((item) => (
               <div key={item.id} className="aspect-square bg-white border border-[#162B1E]/5 rounded-[35px] p-2 shadow-sm relative group overflow-hidden transition-all hover:-translate-y-1">
-                {item.type === 'IMAGE' ? <img src={item.url} className="w-full h-full object-cover rounded-[28px]" /> : <div className="flex flex-col items-center justify-center h-full opacity-40"><FileText size={40}/><span className="text-[10px] font-bold mt-2 uppercase">{item.type}</span></div>}
+                {item.type === 'IMAGE' ? (
+                   <img src={item.url} className="w-full h-full object-cover rounded-[28px]" />
+                ) : (
+                   <div className="flex flex-col items-center justify-center h-full bg-[#F7F4F0] rounded-[28px]">
+                      <FileText size={40} className="text-[#576238] opacity-60"/>
+                      <span className="text-[10px] font-bold mt-2 uppercase text-[#162B1E]/40">DOCUMENT</span>
+                   </div>
+                )}
                 <button onClick={() => handleDeleteTrigger(item.id, false)} className="absolute top-3 right-3 p-2 bg-white text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition shadow-md border border-red-50"><Trash2 size={16}/></button>
               </div>
             ))}
@@ -250,25 +333,13 @@ export default function CreateSpacePage() {
           )}
         </div>
 
-        <input ref={imageInputRef} type="file" multiple accept="image/*" className="hidden" 
-          onChange={(e) => {
-            const files = e.target.files;
-            if (!files || !spaceId) return;
-            Array.from(files).forEach(async (f) => {
-              const res = await uploadAndSaveContent({ file: f, type: 'IMAGE' }, spaceId);
-              if (res) setContents(p => [...p, res]);
-            });
-          }}
+        <input 
+          ref={imageInputRef} type="file" multiple accept="image/*" className="hidden" 
+          onChange={(e) => handleFileUpload(e, 'IMAGE')}
         />
-        <input ref={fileInputRef} type="file" multiple className="hidden" 
-          onChange={(e) => {
-            const files = e.target.files;
-            if (!files || !spaceId) return;
-            Array.from(files).forEach(async (f) => {
-              const res = await uploadAndSaveContent({ file: f, type: 'FILE' }, spaceId);
-              if (res) setContents(p => [...p, res]);
-            });
-          }}
+        <input 
+          ref={fileInputRef} type="file" multiple className="hidden" 
+          onChange={(e) => handleFileUpload(e, 'FILE')}
         />
       </main>
 

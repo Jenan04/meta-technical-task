@@ -34,13 +34,12 @@ export interface CreateSpaceArgs {
 export interface AddContentArgs {
   userId: string;
   spaceId: string;
-  type: 'IMAGE' | 'FILE' | 'NOTE';
-  text?: string;
-  fileName?: string;
-  fileBuffer?: string | Buffer;
-  visibility: 'PRIVATE' | 'PUBLIC';
+  type: "IMAGE" | "FILE" | "NOTE";
+  url?: string;     
+  size?: number;    
+  text?: string;    
+  visibility: "PRIVATE" | "PUBLIC";
 }
-
 export interface TempContentItem {
   file?: File;
   type: 'IMAGE' | 'FILE' | 'NOTE';
@@ -95,4 +94,14 @@ export interface PublicProfileResponse {
     getPublicProfile?: PublicProfileData;
   };
   errors?: Array<{ message: string }>;
+}
+
+export interface CloudinaryResponse {
+  public_id: string;
+  secure_url: string;
+  bytes: number;
+  [key: string]: unknown; 
+}  
+export interface CloudinaryError {
+  message: string;
 }

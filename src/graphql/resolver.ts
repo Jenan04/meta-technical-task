@@ -68,6 +68,13 @@ export const resolvers = {
         throw new GraphQLError("Error fetching space");
       }
     },
+    getPendingUploads: async (_: unknown, { userId }: { userId: string }) => {
+    try {
+      return await UploadService.getPendingUploads(userId);
+    } catch (error: unknown) {
+      throw new GraphQLError("Could not fetch pending uploads");
+    }
+  }
   },
 
   Mutation: {
@@ -108,27 +115,46 @@ export const resolvers = {
       }
     },
 
-    addContent: async (_: unknown, args: AddContentArgs) => {
-      const { userId, spaceId, type, text, fileName, fileBuffer, visibility } = args;
+    
+  startUpload: async (_: unknown, { userId, spaceId, type }: { userId: string, spaceId: string, type: "IMAGE" | "FILE" | "NOTE" }) => {
+    try {
       const space = await SpaceService.getSpace(spaceId, userId);
-      if (!space) throw new Error("Space not found or unauthorized.");
+      if (!space) throw new GraphQLError("Space not found or unauthorized.");
 
-      const upload = await UploadService.createUploadIntent(userId, spaceId, type);
-      let url: string | undefined;
-      let size = 0;
-
-      if (type === "IMAGE" || type === "FILE") {
-        if (!fileBuffer || !fileName) throw new Error("Missing file data");
-        const buffer = typeof fileBuffer === "string" ? Buffer.from(fileBuffer, "base64") : fileBuffer;
-        url = await UploadService.uploadFile(upload.id, userId, spaceId, buffer, fileName, type);
-        size = buffer.length;
-        await UploadService.confirmUpload(upload.id, url, size);
-      } else {
-        size = text?.length ?? 0;
-        await UploadService.confirmUpload(upload.id, "", size);
-      }
-
-      return await UploadService.createContentFromUpload(upload.id, spaceId, visibility, text);
+      return await UploadService.createUploadIntent(userId, spaceId, type);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to start upload intent";
+      throw new GraphQLError(message);
     }
+  },
+
+  finishUpload: async (_: unknown, { uploadId, url, size, visibility }: { uploadId: string, url: string, size: number, visibility: "PRIVATE" | "PUBLIC" }) => {
+    try {
+      return await UploadService.finalizeUpload(uploadId, url, size, visibility);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to finalize upload";
+      throw new GraphQLError(message);
+    }
+  },
+
+  addContent: async (_: unknown, args: AddContentArgs) => {
+    try {
+      const space = await SpaceService.getSpace(args.spaceId, args.userId);
+      if (!space) throw new GraphQLError("Space not found or unauthorized.");
+
+      return await UploadService.addDirectContent(args);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to add content";
+      throw new GraphQLError(message);
+    }
+  },
+
+  reportUploadFailure: async (_: unknown, { uploadId }: { uploadId: string }) => {
+    try {
+      return await UploadService.markUploadAsFailed(uploadId);
+    } catch (error: unknown) {
+      throw new GraphQLError("Failed to report error");
+    }
+  }
   }
 };

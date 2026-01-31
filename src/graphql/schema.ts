@@ -38,6 +38,13 @@ export const typeDefs =`
     createdAt: String!
   }
 
+  type Upload {
+  id: ID!
+  status: String! # أو استخدمي Enum إذا أردتِ
+  fileUrl: String
+  type: ContentType
+}
+
   type Query {
     getUser(id: ID!): User
     getPublicProfile(slug: String!): User 
@@ -45,7 +52,7 @@ export const typeDefs =`
     getSpaceContents(spaceId: ID!): [Content!]!
     getUserSpaces(userId: ID!): [Space!]!
     getSpaceBySlug(slug: String!): Space
-    
+    getPendingUploads(userId: ID!): [Upload!]!
   }
 
   type Mutation {
@@ -58,5 +65,9 @@ export const typeDefs =`
     updateSpace(id: ID!, name: String, type: Type): Space!
     deleteContent(id: ID!): Boolean
     deleteSpace(id: ID!): Boolean
+
+    startUpload(userId: ID!, spaceId: ID!, type: ContentType!): Upload!
+    finishUpload(uploadId: ID!, url: String!, size: Int!, visibility: Type!): Content!
+    reportUploadFailure(uploadId: ID!): Upload!
   }
 `

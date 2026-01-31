@@ -11,7 +11,6 @@ import { Space, profileGraphQLResponse } from '../../../types';
 import { useToast } from '../../context/toastContext';
 
 export default function ProfilePage({ params }: { params: Promise<{ slug: string }> }) {
-  // فك تشفير السلج من الرابط
   const resolvedParams = use(params);
   const slugFromUrl = resolvedParams.slug;
 
@@ -83,7 +82,6 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
       const urlParams = new URLSearchParams(window.location.search);
       const authToken = urlParams.get('auth');
 
-      // 1. الدخول عبر الرابط السري (Admin Access)
       if (authToken && slugFromUrl) {
         try {
           const response = await fetch('/api/graphql', {
@@ -115,7 +113,6 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
         }
       }
 
-      // 2. الدخول العادي
       const userId = localStorage.getItem('userId');
       if (userId) {
         fetchUserDataAndSpaces(userId);
@@ -131,7 +128,6 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
     return () => window.removeEventListener('click', closeMenu);
   }, [fetchUserDataAndSpaces, showToast, slugFromUrl]);
 
-  // دالة الحفظ
   const handleSaveName = async () => {
     const userId = localStorage.getItem('userId');
     if (name.length < 2) {
@@ -192,7 +188,6 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
     showToast(`${type === 'public' ? 'Public link' : 'Admin secret link'} copied!`, "success");
   };
 
-  // UI - الجزء الذي يظهر للمستخدم
   if (isInitialLoading) {
     return (
       <div className="min-h-screen bg-[#FDFCFB]">
@@ -209,7 +204,6 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
     <div className="min-h-screen bg-[#FDFCFB]">
       <Header />
       <main className="max-w-4xl mx-auto px-6 py-12">
-        {/* Profile Header */}
         <div className="flex flex-col md:flex-row items-center gap-10 mb-16">
           <div className="w-36 h-36 rounded-full bg-[#EBE5DD] flex items-center justify-center">
             <User size={70} strokeWidth={0.5} className="text-[#162B1E]/40" />
@@ -244,7 +238,6 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
           </button>
         </div>
 
-        {/* Links Section */}
         {isComplete && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-16">
              <div onClick={() => copyUrl('public')} className="p-5 bg-white border border-[#162B1E]/5 rounded-[30px] flex justify-between items-center cursor-pointer group">
@@ -267,7 +260,6 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
 
         <div className="h-[1px] w-full bg-[#162B1E]/5 mb-16" />
 
-        {/* Spaces Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {spaces.map((space) => (
             <div key={space.id} onClick={() => router.push(`/${space.slug}`)} className="bg-[#EBE5DD] aspect-[16/11] rounded-2xl p-6 relative group cursor-pointer hover:-translate-y-2 transition-all">

@@ -72,3 +72,6 @@ npx prisma migrate dev
 ```
 npm run dev
 ```
+
+## Live Demo
+You can check the live version of the app here: [Sharespace app](https://sharespace-staging.vercel.app)

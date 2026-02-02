@@ -24,7 +24,7 @@ export default function QuickNoteModal({ spaceId, onClose, onNoteAdded }: QuickN
       const userId = localStorage.getItem('userId');
       const token = localStorage.getItem('token');
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/graphql`, {
+      const response = await fetch(`/api/graphql`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -27,7 +27,6 @@ export default function ProfilePage() {
   const router = useRouter();
   const { showToast } = useToast();
 
-  // دالة جلب البيانات (Spaces) مفصلة لإعادة استخدامها
   const fetchUserDataAndSpaces = useCallback(async (userId: string) => {
     try {
       const response = await fetch(`/api/graphql`, {
@@ -75,7 +74,6 @@ export default function ProfilePage() {
     }
   }, []);
 
-  // إدارة الجلسة والدخول عبر الرابط السري
   useEffect(() => {
     const initSession = async () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -83,7 +81,6 @@ export default function ProfilePage() {
       const pathSegments = window.location.pathname.split('/');
       const slugFromUrl = pathSegments[pathSegments.length - 1];
 
-      // حالة الدخول من رابط سري (Admin Access)
       if (authToken && slugFromUrl) {
         try {
           const response = await fetch('/api/graphql', {
@@ -106,7 +103,6 @@ export default function ProfilePage() {
           if (user) {
             localStorage.setItem('userId', user.id);
             showToast("Admin access granted via secret link", "success");
-            // تنظيف الرابط
             window.history.replaceState({}, '', window.location.pathname);
             fetchUserDataAndSpaces(user.id);
             return;
@@ -116,7 +112,6 @@ export default function ProfilePage() {
         }
       }
 
-      // الحالة العادية (مستخدم مسجل مسبقاً)
       const userId = localStorage.getItem('userId');
       if (userId) {
         fetchUserDataAndSpaces(userId);
@@ -127,7 +122,6 @@ export default function ProfilePage() {
 
     initSession();
 
-    // إغلاق المنيو عند الضغط في أي مكان
     const closeMenu = () => setActiveMenu(null);
     window.addEventListener('click', closeMenu);
     return () => window.removeEventListener('click', closeMenu);
@@ -208,7 +202,6 @@ export default function ProfilePage() {
       <Header />
       
       <main className="max-w-4xl mx-auto px-6 py-12">
-        {/* Profile Header */}
         <div className="flex flex-col md:flex-row items-center gap-10 mb-16">
           <div className="relative group">
             <div className="w-36 h-36 rounded-full bg-[#EBE5DD] border border-[#162B1E]/10 flex items-center justify-center overflow-hidden">
@@ -371,315 +364,3 @@ export default function ProfilePage() {
   );
 }
 
-// 'use client';
-// import { useState, useEffect, useCallback, use as useReact } from 'react';
-// import { 
-//   User, MapPin, Plus, Loader2, Lock, Globe, Folder, 
-//   MoreVertical, Trash2, Share2, ExternalLink, LinkIcon 
-// } from 'lucide-react';
-// import Header from '@/app/component/header'; // تأكدي من المسار الصحيح
-// import { useRouter } from 'next/navigation';
-// import DeleteSpaceModal from '@/app/component/deleteSpaceMpdal';
-// import { Space, profileGraphQLResponse } from '@/types';
-// import { useToast } from '@/app/context/toastContext';
-
-// export default function ProfilePage({ params }: { params: Promise<{ slug: string }> }) {
-//   // فك تشفير السلج من الرابط (Next.js 15 way)
-//   const { slug } = useReact(params);
-  
-//   const [name, setName] = useState('');
-//   const [savedName, setSavedName] = useState('');
-//   const [isComplete, setIsComplete] = useState(false);
-//   const [isInitialLoading, setIsInitialLoading] = useState(true);
-//   const [isEditing, setIsEditing] = useState(false);
-//   const [loading, setLoading] = useState(false);
-//   const [error, setError] = useState('');
-//   const [spaces, setSpaces] = useState<Space[]>([]); 
-//   const [activeMenu, setActiveMenu] = useState<string | null>(null);
-//   const [spaceToDelete, setSpaceToDelete] = useState<{id: string, name: string} | null>(null);
-//   const [privateToken, setPrivateToken] = useState('');
-  
-//   const router = useRouter();
-//   const { showToast } = useToast();
-
-//   // 1. دالة جلب البيانات (Spaces + User Info)
-//   const fetchUserDataAndSpaces = useCallback(async (userId: string) => {
-//     try {
-//       const response = await fetch(`/api/graphql`, {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({
-//           query: `
-//             query GetUserAndSpaces($id: ID!) {
-//               getUser(id: $id) {
-//                 name
-//                 isComplete
-//                 slug          
-//                 privateToken
-//               }
-//               getUserSpaces(userId: $id) { 
-//                 id
-//                 name
-//                 type
-//                 slug
-//               }
-//             }
-//           `,
-//           variables: { id: userId },
-//         }),
-//       });
-
-//       const result: profileGraphQLResponse = await response.json();
-//       const userData = result.data?.getUser;
-
-//       if (userData) {
-//         setSavedName(userData.name);
-//         setName(userData.name);
-//         setPrivateToken(userData.privateToken);
-//         setIsComplete(userData.isComplete);
-//       }
-
-//       if (result.data?.getUserSpaces) {
-//         setSpaces(result.data.getUserSpaces);
-//       }
-//     } catch (err) {
-//       console.error("Fetch error:", err);
-//       showToast("Error loading your data", "error");
-//     } finally {
-//       setIsInitialLoading(false);
-//     }
-//   }, [showToast]);
-
-//   // 2. إدارة الجلسة والدخول السري
-//   useEffect(() => {
-//     const initSession = async () => {
-//       const urlParams = new URLSearchParams(window.location.search);
-//       const authToken = urlParams.get('auth');
-
-//       // الحالة أ: الدخول عبر رابط سري (Admin Secret Link)
-//       if (authToken && slug) {
-//         try {
-//           const response = await fetch('/api/graphql', {
-//             method: 'POST',
-//             headers: { 'Content-Type': 'application/json' },
-//             body: JSON.stringify({
-//               query: `
-//                 query GetPrivateByToken($slug: String!, $token: String!) {
-//                   getPrivateProfileByToken(slug: $slug, token: $token) {
-//                     id
-//                   }
-//                 }
-//               `,
-//               variables: { slug: slug, token: authToken }
-//             }),
-//           });
-//           const result = await response.json();
-//           const user = result.data?.getPrivateProfileByToken;
-
-//           if (user) {
-//             localStorage.setItem('userId', user.id);
-//             showToast("Welcome back, Admin!", "success");
-//             // تنظيف الرابط من الـ token ليبقى المظهر أنيقاً
-//             window.history.replaceState({}, '', `/profile/${slug}`);
-//             fetchUserDataAndSpaces(user.id);
-//             return;
-//           } else {
-//             showToast("Invalid secret link", "error");
-//           }
-//         } catch (err) {
-//           showToast("Connection error", "error");
-//         }
-//       }
-
-//       // الحالة ب: الدخول العادي (المتصفح يعرف الـ ID مسبقاً)
-//       const userId = localStorage.getItem('userId');
-//       if (userId) {
-//         fetchUserDataAndSpaces(userId);
-//       } else {
-//         // إذا لم يكن هناك ID ولا توكن، نوجهه للرئيسية أو نطلب منه التسجيل
-//         setIsInitialLoading(false);
-//         router.push('/'); 
-//       }
-//     };
-
-//     initSession();
-
-//     const closeMenu = () => setActiveMenu(null);
-//     window.addEventListener('click', closeMenu);
-//     return () => window.removeEventListener('click', closeMenu);
-//   }, [slug, fetchUserDataAndSpaces, showToast, router]);
-
-//   // 3. وظيفة حفظ الاسم
-//   const handleSaveName = async () => {
-//     const userId = localStorage.getItem('userId');
-//     if (name.length < 2) {
-//       setError('Name is too short');
-//       return;
-//     }
-
-//     setLoading(true);
-//     try {
-//       const response = await fetch(`/api/graphql`, {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({
-//           query: `
-//             mutation UpdateUser($id: ID!, $name: String!) {
-//               updateUser(id: $id, name: $name) {
-//                 name
-//                 slug
-//                 privateToken
-//                 isComplete
-//               }
-//             }
-//           `,
-//           variables: { id: userId, name: name },
-//         }),
-//       });
-//       const result = await response.json();
-//       if (result.data?.updateUser) {
-//         const updated = result.data.updateUser;
-//         setSavedName(updated.name);
-//         setPrivateToken(updated.privateToken);
-//         setIsComplete(updated.isComplete);
-//         setIsEditing(false);
-//         setError('');
-//         showToast("Identity updated!", "success");
-//         // تحديث الرابط في المتصفح إذا تغير السلج
-//         router.push(`/profile/${updated.slug}`);
-//       }
-//     } catch (err) {
-//       setError("Failed to save");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const copyUrl = (type: 'public' | 'admin') => {
-//     if (!slug) {
-//     showToast("URL not ready yet", "error");
-//     return;
-//   }
-//     const origin = window.location.origin;
-//     const url = type === 'public' 
-//       ? `${origin}/share/${slug}`
-//       : `${origin}/profile/${slug}?auth=${privateToken}`;
-    
-//     navigator.clipboard.writeText(url);
-//     showToast(`${type === 'public' ? 'Public link' : 'Admin secret link'} copied!`, "success");
-//   };
-
-//   if (isInitialLoading) {
-//     return (
-//       <div className="min-h-screen bg-[#FDFCFB] flex items-center justify-center">
-//         <Loader2 className="animate-spin text-[#576238]" size={32} />
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-[#FDFCFB]">
-//       <Header />
-      
-//       <main className="max-w-4xl mx-auto px-6 py-12">
-//         {/* Header Section */}
-//         <div className="flex flex-col md:flex-row items-center gap-10 mb-16">
-//           <div className="w-36 h-36 rounded-full bg-[#EBE5DD] border border-[#162B1E]/10 flex items-center justify-center">
-//             <User size={70} strokeWidth={0.5} className="text-[#162B1E]/40" />
-//           </div>
-
-//           <div className="flex-1 text-center md:text-left">
-//             {isEditing || !isComplete ? (
-//               <div className="max-w-sm mx-auto md:mx-0">
-//                 <input
-//                   type="text"
-//                   value={name}
-//                   onChange={(e) => setName(e.target.value.replace(/\s/g, ''))}
-//                   className={`text-3xl font-serif italic bg-transparent border-b-2 w-full py-1 focus:outline-none ${
-//                     error ? 'border-red-400' : 'border-[#162B1E]/20 focus:border-[#162B1E]'
-//                   }`}
-//                   placeholder="yourname"
-//                 />
-//                 <button
-//                   onClick={handleSaveName}
-//                   className="mt-6 px-8 py-2.5 bg-[#162B1E] text-[#EBE5DD] rounded-full text-[10px] font-bold uppercase tracking-widest"
-//                 >
-//                   Confirm Identity
-//                 </button>
-//               </div>
-//             ) : (
-//               <div>
-//                 <h1 className="text-5xl font-serif italic text-[#162B1E]">@{savedName}</h1>
-//                 <div className="flex items-center justify-center md:justify-start gap-6 mt-4 text-[#162B1E]/50 font-bold text-[11px] uppercase tracking-tighter">
-//                   <span className="flex items-center gap-1.5"><MapPin size={14} /> Admin Access</span>
-//                   <button onClick={() => setIsEditing(true)} className="border-b border-[#162B1E]/20">Edit Name</button>
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-
-//           <button
-//             onClick={() => router.push('/createSpacePage')}
-//             className="flex items-center gap-3 px-10 py-4 bg-[#576238] text-white rounded-full shadow-xl hover:-translate-y-1 transition-all"
-//           >
-//             <Plus size={20} />
-//             <span className="font-bold text-sm tracking-widest uppercase">Add Space</span>
-//           </button>
-//         </div>
-
-//         {/* Links Cards */}
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-16">
-//           <div className="p-5 bg-white border border-[#162B1E]/5 rounded-[30px] flex items-center justify-between group hover:border-[#576238]/30 transition-colors cursor-pointer" onClick={() => copyUrl('public')}>
-//             <div className="flex items-center gap-4">
-//               <div className="p-3 bg-[#F4F1EE] rounded-2xl text-[#162B1E]/40 group-hover:text-[#576238] transition-colors"><Globe size={18} /></div>
-//               <div><p className="text-[10px] font-bold uppercase opacity-30">Public Profile</p><p className="text-xs font-medium opacity-60">share/{slug}</p></div>
-//             </div>
-//             <Share2 size={16} className="text-[#162B1E]/40" />
-//           </div>
-
-//           <div className="p-5 bg-white border border-[#162B1E]/5 rounded-[30px] flex items-center justify-between group hover:border-amber-200 transition-colors cursor-pointer" onClick={() => copyUrl('admin')}>
-//             <div className="flex items-center gap-4">
-//               <div className="p-3 bg-amber-50 rounded-2xl text-amber-600/40 group-hover:text-amber-600 transition-colors"><Lock size={18} /></div>
-//               <div><p className="text-[10px] font-bold uppercase text-amber-600/50">Admin Secret Link</p><p className="text-xs font-medium opacity-60">Restore session on any device</p></div>
-//             </div>
-//             <LinkIcon size={16} className="text-amber-600/40" />
-//           </div>
-//         </div>
-
-//         {/* Spaces List */}
-//         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-//           {spaces.map((space) => (
-//             <div key={space.id} className="group relative">
-//                {/* Menu logic remains the same as your previous code... */}
-//                <div onClick={() => router.push(`/${space.slug}`)} className="relative aspect-[16/11] bg-[#EBE5DD] rounded-2xl p-6 transition-all group-hover:bg-[#D6CFC6] cursor-pointer shadow-sm">
-//                   <div className="flex flex-col h-full justify-between">
-//                     <div className="p-2 bg-white/50 w-fit rounded-lg shadow-sm">
-//                       {space.type === 'PRIVATE' ? <Lock size={16} /> : <Globe size={16} />}
-//                     </div>
-//                     <div>
-//                       <h3 className="text-lg font-bold text-[#162B1E] truncate">{space.name}</h3>
-//                       <p className="text-[10px] uppercase font-bold tracking-widest text-[#162B1E]/40 mt-1">{space.type}</p>
-//                     </div>
-//                   </div>
-//                </div>
-//             </div>
-//           ))}
-//           {spaces.length === 0 && (
-//              <div className="col-span-full py-20 text-center opacity-20">
-//                <Folder size={40} className="mx-auto mb-4" />
-//                <p className="text-[10px] font-bold uppercase tracking-widest">Your archives are empty</p>
-//              </div>
-//           )}
-//         </div>
-//       </main>
-
-//       <DeleteSpaceModal 
-//         isOpen={!!spaceToDelete} 
-//         spaceId={spaceToDelete?.id || ''} 
-//         spaceName={spaceToDelete?.name || ''} 
-//         onClose={() => setSpaceToDelete(null)}
-//         onSuccess={() => setSpaces(spaces.filter(s => s.id !== spaceToDelete?.id))}
-//       />
-//     </div>
-//   );
-// }

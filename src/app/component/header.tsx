@@ -35,7 +35,7 @@ const Header: React.FC<HeaderProps> = ({ hideUserLinks }) => {
   const handleGetStarted = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/graphql`, {
+      const response = await fetch(`/api/graphql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

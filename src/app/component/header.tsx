@@ -55,15 +55,20 @@ const Header: React.FC<HeaderProps> = ({ hideUserLinks }) => {
       });
 
       const result = await response.json();
+      if (result && result.data && result.data.createPseudoUser) {
       const userData = result.data.createPseudoUser;
 
-      if (userData?.id) {
+      // if (userData?.id) {
         localStorage.setItem('userId', userData.id);
         localStorage.setItem('token', userData.privateToken); // التوكن الضروري للـ Auth
         localStorage.setItem('userName', userData.name);
         setHasUser(true); 
         router.push('/feed');
       }
+      else {
+      console.error("Server responded but without user data:", result.errors || result);
+      alert("Something went wrong on the server. Please check the console.");
+    }
     } catch (error) {
       console.error("Error creating user:", error);
     } finally {

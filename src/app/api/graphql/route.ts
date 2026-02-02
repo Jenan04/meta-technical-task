@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 import { createYoga, createSchema } from 'graphql-yoga';
 import { typeDefs } from '@/graphql/schema';
 import { resolvers } from '@/graphql/resolver';
@@ -14,13 +15,13 @@ const yoga = createYoga({
 });
 
 export async function GET(request: NextRequest) {
-  return yoga(request)
+  return yoga.handleRequest(request, {})
 }
 
 export async function POST(request: NextRequest) {
-  return yoga(request)
+  return yoga.handleRequest(request, {})
 }
 
 export async function OPTIONS(request: NextRequest) {
-  return yoga(request)
+  return yoga.handleRequest(request, {})
 }

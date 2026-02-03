@@ -29,9 +29,7 @@ export const UploadService = {
     });
   },
 
-  // 3. الربط النهائي (التحويل من PENDING إلى COMPLETED)
   async finalizeUpload(uploadId: string, url: string, size: number, visibility: "PRIVATE" | "PUBLIC") {
-    // نستخدم transaction لضمان أن التحديث وإنشاء المحتوى يتمان معاً
     return await prisma.$transaction(async (tx) => {
       const upload = await tx.upload.update({
         where: { id: uploadId },
@@ -55,7 +53,6 @@ export const UploadService = {
     });
   },
 
-  // 4. استرجاع الملفات المعلقة (هذا ما يجعل السيرفر "واعياً" بالنت المفصول)
   async getPendingUploads(userId: string) {
     return await prisma.upload.findMany({
       where: {
@@ -72,15 +69,20 @@ export const UploadService = {
 
 async uploadFile(uploadId: string, userId: string, spaceId: string, fileBuffer: Buffer, fileName: string, type: "IMAGE" | "FILE") {
   try {
-    // تحويل الـ Buffer لسلسلة نصية Base64
     const base64Data = fileBuffer.toString('base64');
-    const fileUri = `data:${type === "IMAGE" ? "image/png" : "application/octet-stream"};base64,${base64Data}`;
 
+    let mimeType = "image/png"; 
+    if (type === "FILE") {
+      mimeType = fileName.endsWith('.pdf') ? "application/pdf" : "application/octet-stream";
+    }
+    const fileUri = `data:${mimeType};base64,${base64Data}`;
     const result = await cloudinary.uploader.upload(fileUri, {
       public_id: `upload_${uploadId}`,
       folder: `user_${userId}/space_${spaceId}`,
-      resource_type: type === "IMAGE" ? "image" : "raw",
-      // إضافة timeout لضمان عدم التعليق
+
+      resource_type: (type === "IMAGE" || fileName.endsWith('.pdf')) ? "image" : "raw",
+      
+      access_mode: "public",
       timeout: 60000 
     });
 
@@ -172,7 +174,6 @@ async uploadFile(uploadId: string, userId: string, spaceId: string, fileBuffer: 
       },
     });
 
-    // 2. إنشاء المحتوى المرتبط
     return await prisma.content.create({
       data: {
         type: upload.type!,

@@ -300,13 +300,55 @@ export default function SpaceViewPage() {
             </div>
             <div className="p-12 flex items-center justify-center bg-[#EBE5DD]/20 min-h-[400px]">
               {selectedItem.type === 'IMAGE' ? (
-                <img src={selectedItem.url} className="max-h-[60vh] rounded-lg shadow-lg" alt=""/>
-              ) : (
-                <div className="max-w-2xl">
-                    <p className="text-3xl md:text-4xl font-serif italic text-center text-[#162B1E] leading-relaxed">
-                        &quot;{selectedItem.text}&quot;
-                    </p>
-                </div>
+                <img src={selectedItem.url || ""} className="max-h-[60vh] rounded-lg shadow-lg" alt=""/>
+              ) : selectedItem.type === 'FILE' ?(
+                // <div className="max-w-2xl">
+                //     <p className="text-3xl md:text-4xl font-serif italic text-center text-[#162B1E] leading-relaxed">
+                //         &quot;{selectedItem.text}&quot;
+                //     </p>
+                // </div>
+                <div className="flex flex-col items-center gap-6 w-full max-w-2xl text-center">
+                 <div className="p-8 bg-white rounded-[30px] shadow-sm border border-[#162B1E]/5">
+                   <FileText size={80} className="text-[#576238] mb-4 mx-auto" />
+                   <h3 className="text-xl font-serif italic text-[#162B1E] mb-2">Document File</h3>
+                   <p className="text-[10px] text-[#162B1E]/40 uppercase tracking-widest mb-6">Cloudinary Hosted Asset</p>
+        
+                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {/* زر الفتح في نافذة جديدة */}
+                     <a 
+                       href={selectedItem.url} 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       className="px-8 py-3 bg-[#162B1E] text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2"
+                     >
+                       Open in New Tab
+                     </a>
+          
+          {/* زر التحميل المباشر */}
+                     <a 
+                       href={selectedItem.url?? '#'.replace('/upload/', '/upload/fl_attachment/')} 
+                       download
+                       className="px-8 py-3 bg-white border border-[#162B1E]/10 text-[#162B1E] rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-[#F4F1EE] transition-all"
+                     >
+                       Download File
+                     </a>
+                   </div>
+                 </div>
+      
+      {/* إذا كان الملف PDF ممكن تعرضه بـ iframe (اختياري) */}
+                 {selectedItem.url.endsWith('.pdf') && (
+                   <iframe 
+                     src={selectedItem.url} 
+                     className="w-full h-[500px] rounded-xl border border-[#162B1E]/10"
+                   />
+                 )}
+               </div>
+             ) : (
+               <div className="max-w-2xl overflow-y-auto max-h-[60vh] px-4">
+                 <p className="text-2xl md:text-3xl font-serif italic text-center text-[#162B1E] leading-relaxed">
+                   &quot;{selectedItem.text}&quot;
+                 </p>
+               </div>
               )}
             </div>
           </div>

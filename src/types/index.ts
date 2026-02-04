@@ -1,7 +1,7 @@
 export interface ContentItem {
   id: string;
   type: 'IMAGE' | 'FILE' | 'NOTE';
-  url?: string;
+  url: string;
   text?: string;
   createdAt: string;
 }
